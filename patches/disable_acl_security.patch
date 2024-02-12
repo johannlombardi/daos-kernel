@@ -1,0 +1,129 @@
+diff -Nrup linux-4.18.0-513.11.1.el8_9.orig/fs/fuse/acl.c linux-4.18.0-513.11.1.el8_9/fs/fuse/acl.c
+--- linux-4.18.0-513.11.1.el8_9.orig/fs/fuse/acl.c	2024-02-07 14:43:32.792498828 +0000
++++ linux-4.18.0-513.11.1.el8_9/fs/fuse/acl.c	2024-02-07 15:58:04.065643712 +0000
+@@ -13,98 +13,16 @@
+ 
+ struct posix_acl *fuse_get_acl(struct inode *inode, int type)
+ {
+-	struct fuse_conn *fc = get_fuse_conn(inode);
+-	int size;
+-	const char *name;
+-	void *value = NULL;
+-	struct posix_acl *acl;
+-
+ 	if (fuse_is_bad(inode))
+ 		return ERR_PTR(-EIO);
+ 
+-	if (!fc->posix_acl || fc->no_getxattr)
+-		return NULL;
+-
+-	if (type == ACL_TYPE_ACCESS)
+-		name = XATTR_NAME_POSIX_ACL_ACCESS;
+-	else if (type == ACL_TYPE_DEFAULT)
+-		name = XATTR_NAME_POSIX_ACL_DEFAULT;
+-	else
+-		return ERR_PTR(-EOPNOTSUPP);
+-
+-	value = kmalloc(PAGE_SIZE, GFP_KERNEL);
+-	if (!value)
+-		return ERR_PTR(-ENOMEM);
+-	size = fuse_getxattr(inode, name, value, PAGE_SIZE);
+-	if (size > 0)
+-		acl = posix_acl_from_xattr(fc->user_ns, value, size);
+-	else if ((size == 0) || (size == -ENODATA) ||
+-		 (size == -EOPNOTSUPP && fc->no_getxattr))
+-		acl = NULL;
+-	else if (size == -ERANGE)
+-		acl = ERR_PTR(-E2BIG);
+-	else
+-		acl = ERR_PTR(size);
+-
+-	kfree(value);
+-	return acl;
++	return NULL;
+ }
+ 
+ int fuse_set_acl(struct inode *inode, struct posix_acl *acl, int type)
+ {
+-	struct fuse_conn *fc = get_fuse_conn(inode);
+-	const char *name;
+-	int ret;
+-
+ 	if (fuse_is_bad(inode))
+ 		return -EIO;
+ 
+-	if (!fc->posix_acl || fc->no_setxattr)
+-		return -EOPNOTSUPP;
+-
+-	if (type == ACL_TYPE_ACCESS)
+-		name = XATTR_NAME_POSIX_ACL_ACCESS;
+-	else if (type == ACL_TYPE_DEFAULT)
+-		name = XATTR_NAME_POSIX_ACL_DEFAULT;
+-	else
+-		return -EINVAL;
+-
+-	if (acl) {
+-		unsigned int extra_flags = 0;
+-		/*
+-		 * Fuse userspace is responsible for updating access
+-		 * permissions in the inode, if needed. fuse_setxattr
+-		 * invalidates the inode attributes, which will force
+-		 * them to be refreshed the next time they are used,
+-		 * and it also updates i_ctime.
+-		 */
+-		size_t size = posix_acl_xattr_size(acl->a_count);
+-		void *value;
+-
+-		if (size > PAGE_SIZE)
+-			return -E2BIG;
+-
+-		value = kmalloc(size, GFP_KERNEL);
+-		if (!value)
+-			return -ENOMEM;
+-
+-		ret = posix_acl_to_xattr(fc->user_ns, acl, value, size);
+-		if (ret < 0) {
+-			kfree(value);
+-			return ret;
+-		}
+-
+-		if (!in_group_p(inode->i_gid) &&
+-		    !capable_wrt_inode_uidgid(inode, CAP_FSETID))
+-			extra_flags |= FUSE_SETXATTR_ACL_KILL_SGID;
+-
+-		ret = fuse_setxattr(inode, name, value, size, 0, extra_flags);
+-		kfree(value);
+-	} else {
+-		ret = fuse_removexattr(inode, name);
+-	}
+-	forget_all_cached_acls(inode);
+-	fuse_invalidate_attr(inode);
+-
+-	return ret;
++	return -EOPNOTSUPP;
+ }
+diff -Nrup linux-4.18.0-513.11.1.el8_9.orig/fs/fuse/xattr.c linux-4.18.0-513.11.1.el8_9/fs/fuse/xattr.c
+--- linux-4.18.0-513.11.1.el8_9.orig/fs/fuse/xattr.c	2024-02-07 14:43:32.793498926 +0000
++++ linux-4.18.0-513.11.1.el8_9/fs/fuse/xattr.c	2024-02-07 15:56:40.832468714 +0000
+@@ -19,7 +19,9 @@ int fuse_setxattr(struct inode *inode, c
+ 	struct fuse_setxattr_in inarg;
+ 	int err;
+ 
+-	if (fm->fc->no_setxattr)
++	if (fm->fc->no_setxattr ||
++	    !strncmp(name, XATTR_SECURITY_PREFIX, XATTR_SECURITY_PREFIX_LEN) ||
++	    !strncmp(name, XATTR_SYSTEM_PREFIX, XATTR_SYSTEM_PREFIX_LEN))
+ 		return -EOPNOTSUPP;
+ 
+ 	memset(&inarg, 0, sizeof(inarg));
+@@ -58,7 +60,9 @@ ssize_t fuse_getxattr(struct inode *inod
+ 	struct fuse_getxattr_out outarg;
+ 	ssize_t ret;
+ 
+-	if (fm->fc->no_getxattr)
++	if (fm->fc->no_getxattr ||
++	    !strncmp(name, XATTR_SECURITY_PREFIX, XATTR_SECURITY_PREFIX_LEN) ||
++	    !strncmp(name, XATTR_SYSTEM_PREFIX, XATTR_SYSTEM_PREFIX_LEN))
+ 		return -EOPNOTSUPP;
+ 
+ 	memset(&inarg, 0, sizeof(inarg));

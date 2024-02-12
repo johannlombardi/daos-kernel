@@ -1,0 +1,39 @@
+diff -Nrup linux-4.18.0-513.11.1.el8_9.orig/fs/fuse/file.c linux-4.18.0-513.11.1.el8_9/fs/fuse/file.c
+--- linux-4.18.0-513.11.1.el8_9.orig/fs/fuse/file.c	2024-02-07 14:43:32.792498828 +0000
++++ linux-4.18.0-513.11.1.el8_9/fs/fuse/file.c	2024-02-07 15:06:18.752647235 +0000
+@@ -1349,7 +1349,7 @@ static ssize_t fuse_cache_write_iter(str
+ 	}
+ 
+ writethrough:
+-	inode_lock(inode);
++	inode_lock_shared(inode);
+ 
+ 	/* We can write back this queue in page reclaim */
+ 	current->backing_dev_info = inode_to_bdi(inode);
+@@ -1399,7 +1399,7 @@ writethrough:
+ 	}
+ out:
+ 	current->backing_dev_info = NULL;
+-	inode_unlock(inode);
++	inode_unlock_shared(inode);
+ 	if (written > 0)
+ 		written = generic_write_sync(iocb, written);
+ 
+@@ -1610,7 +1610,7 @@ static ssize_t fuse_direct_write_iter(st
+ 	ssize_t res;
+ 
+ 	/* Don't allow parallel writes to the same file */
+-	inode_lock(inode);
++	inode_lock_shared(inode);
+ 	res = generic_write_checks(iocb, from);
+ 	if (res > 0) {
+ 		if (!is_sync_kiocb(iocb) && iocb->ki_flags & IOCB_DIRECT) {
+@@ -1623,7 +1623,7 @@ static ssize_t fuse_direct_write_iter(st
+ 	fuse_invalidate_attr(inode);
+ 	if (res > 0)
+ 		fuse_write_update_size(inode, iocb->ki_pos);
+-	inode_unlock(inode);
++	inode_unlock_shared(inode);
+ 
+ 	return res;
+ }
