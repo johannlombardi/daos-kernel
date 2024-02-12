@@ -1,6 +1,6 @@
 The purpose of this project is to provide a generic-purpose DAOS kernel client
-that performs reasonably well for most workloads. This is achieve by patching
-FUSE.
+that performs reasonably well for most workloads. This is achieved by patching
+FUSE and presenting the filesystem as daos instead of fuse.
 
 It requires a special DAOS client build:
 
@@ -62,3 +62,5 @@ And the mountpoint identifies as "daos" instead of "fuse":
 $ mount | grep daos
 dfuse on /daos type daos.daos (rw,nosuid,nodev,noatime,user_id=0,group_id=0,default_permissions,allow_other)
 ```
+
+These instrucutions have so far been tested only with Rocky Linux 8.9.
