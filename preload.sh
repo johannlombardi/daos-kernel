@@ -13,6 +13,7 @@ echo "Patching FUSE"
 # apply patches to boost FUSE performance
 patch -p3 < patches/shared_lock_concurrent_writes.patch
 patch -p3 < patches/disable_acl_security.patch
+patch -p3 < patches/bump_bdi.patch
 
 echo "Renaming FUSE"
 
