@@ -20,6 +20,6 @@ jobs:
         run: |
           cd ..
           mv daos-kernel daos-kernel-0.1
-          dnf -y install dkms
+          sudo dnf -y install dkms
           dkms build daos-kernel/0.1
           dkms install daos-kernel/0.1
