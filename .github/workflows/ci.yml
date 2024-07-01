@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: rockylinux/rockylinux:8
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build dkms
+        run: |
+          cd ..
+          mv daos-kernel daos-kernel-0.1
+          dnf -y install dkms
+          dkms build daos-kernel/0.1
+          dkms install daos-kernel/0.1
