@@ -1,0 +1,14 @@
+diff --git a/fs/fuse/inode.c b/fs/fuse/inode.c
+index 99e44ea7d875..a212994b0fee 100644
+--- a/fs/fuse/inode.c
++++ b/fs/fuse/inode.c
+@@ -1455,7 +1455,8 @@ static int fuse_bdi_init(struct fuse_conn *fc, struct super_block *sb)
+ 	 *
+ 	 *    /sys/class/bdi/<bdi>/max_ratio
+ 	 */
+-	bdi_set_max_ratio(sb->s_bdi, 1);
++	bdi_set_max_ratio(sb->s_bdi, 50);
++	sb->s_bdi->ra_pages = SZ_4M / PAGE_SIZE;
+ 
+ 	return 0;
+ }
