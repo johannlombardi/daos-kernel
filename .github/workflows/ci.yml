@@ -19,7 +19,8 @@ jobs:
       - name: Build dkms
         run: |
           cd ..
-          mv daos-kernel daos-kernel-0.1
-          sudo dnf -y install dkms
+          dnf install -y epel-release
+          dnf install -y dkms git
+          mv daos-kernel /usr/src/daos-kernel-0.1
           dkms build daos-kernel/0.1
           dkms install daos-kernel/0.1
